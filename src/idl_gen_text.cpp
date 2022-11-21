@@ -351,7 +351,7 @@ struct JsonPrinter {
           #undef FLATBUFFERS_TD
           #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
             case BASE_TYPE_ ## ENUM: \
-              return PrintScalar<CTYPE>(*((CTYPE*)(data)), type, indent); 
+              return PrintScalar<CTYPE>(*((CTYPE*)(data->Data())), type, indent); 
               FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
           #undef FLATBUFFERS_TD
         }
