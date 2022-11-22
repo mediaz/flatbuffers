@@ -1436,7 +1436,9 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
   ParseDepthGuard depth_guard(this);
   ECHECK(depth_guard.Check());
 
+#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format off
   int32_t lastFieldCount = int32_t(field_stack_.size());
+#endif // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
 
   size_t fieldn_outer = 0;
   auto err = ParseTableDelimiters(
@@ -4305,7 +4307,7 @@ std::string Parser::ConformTo(const Parser &base) {
   return "";
 }
 
-// clang-format off
+#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format off
 Parser::type_lookup *Parser::LookupPrimitiveType(std::string const &name) {
   static type_lookup lookup[] = {
     { "f32", BASE_TYPE_FLOAT, BASE_TYPE_NONE },
@@ -4513,5 +4515,6 @@ bool Parser::CompleteMissingField(FieldDef* absent_field, const StructDef &struc
 
   return found;
 }
+#endif // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format on
 
 }  // namespace flatbuffers
