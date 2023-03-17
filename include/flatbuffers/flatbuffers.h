@@ -83,7 +83,9 @@ inline uoffset_t GetPrefixedSize(const uint8_t *buf) {
 // Base class for native objects (FlatBuffer data de-serialized into native
 // C++ data structures).
 // Contains no functionality, purely documentative.
-struct NativeTable {};
+struct NativeTable {
+    bool operator==(NativeTable const&)const{return true;}
+};
 
 /// @brief Function types to be used with resolving hashes into objects and
 /// back again. The resolver gets a pointer to a field inside an object API
@@ -268,5 +270,4 @@ inline const char *flatbuffers_version_string() {
 }  // namespace flatbuffers
 
 // clang-format on
-
 #endif  // FLATBUFFERS_H_
