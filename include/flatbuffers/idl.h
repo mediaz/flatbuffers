@@ -626,7 +626,11 @@ inline bool operator<(const IncludedFile &a, const IncludedFile &b) {
 struct IDLOptions {
   // field case style options for C++
   enum CaseStyle { CaseStyle_Unchanged = 0, CaseStyle_Upper, CaseStyle_Lower };
+  #ifdef ERROR
+  #undef ERROR
+  #endif
   enum class ProtoIdGapAction { NO_OP, WARNING, ERROR };
+
   bool gen_jvmstatic;
   // Use flexbuffers instead for binary and text generation
   bool use_flexbuffers;
