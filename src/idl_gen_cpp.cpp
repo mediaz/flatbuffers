@@ -2060,6 +2060,20 @@ class CppGenerator : public BaseGenerator {
     GenOperatorNewDelete(struct_def);
     GenDefaultConstructor(struct_def);
     GenCopyMoveCtorAndAssigOpDecls(struct_def);
+
+    code_ += "  template<size_t Index>";
+    code_ += "  auto& get_field() {";
+    int index = 0;
+    for (const auto field : struct_def.fields.vec) {
+      code_.SetValue("FIELD_INDEX", std::to_string(index++));
+      code_.SetValue("FIELD_NAME", EscapeKeyword(field->name));
+      if(field->value.type.base_type == BASE_TYPE_UTYPE)
+        code_.SetValue("FIELD_NAME", EscapeKeyword(struct_def.fields.vec[index]->name) + ".type");
+      else if(field->value.type.base_type == BASE_TYPE_VECTOR && field->value.type.VectorType().base_type == BASE_TYPE_UTYPE)
+        code_.SetValue("FIELD_NAME", EscapeKeyword(struct_def.fields.vec[index]->name));
+      code_ += "    if constexpr ({{FIELD_INDEX}} == Index) return {{FIELD_NAME}};";
+    }
+    code_ += "  }";
     code_ += "};";
     code_ += "";
   }
@@ -2973,7 +2987,7 @@ class CppGenerator : public BaseGenerator {
           ptype += GenTypeNativePtr(
               WrapNativeNameInNameSpace(*type.struct_def, opts_), &afield,
               true);
-          return ptype + "(" + val + "->UnPack(_resolver))";
+          return ptype + "/*ovyes*/(" + val + "->UnPack(_resolver))";
         }
       }
       case BASE_TYPE_UNION: {
