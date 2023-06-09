@@ -4569,137 +4569,188 @@ const char *Parser::LookupDynamicFieldType(const FieldDef *dynamic_field, const 
   }
   return typeName;
 }
-bool Parser::ResolveDynamicType(const char* typeName, Type& type, const FieldDef *field)
+bool Parser::ResolveDynamicType(std::string const& typeName, const FieldDef *field, Type& type)
 {
-  if (field->attributes.Lookup("dynamic")) 
+  if (!field->attributes.Lookup("dynamic"))
   {
-      if (auto type_result = LookupPrimitiveType(typeName)) 
-      {
-        type = *type_result;
-      } 
-      else 
-      {
-          if (auto enum_def = LookupTableByName(enums_, typeName, *current_namespace_, 0)) 
-          {
-            type = enum_def->underlying_type;
-            type.enum_def = enum_def;
-            enum_def->refcount++;
-            if (enum_def->is_union) 
-            {
-              type.base_type = BASE_TYPE_UNION;
-            }
-          } 
-          else 
-          {
-            if (auto mz_struct_def = LookupStruct(typeName)) 
-            {
-              type.struct_def = mz_struct_def;
-              type.base_type = BASE_TYPE_STRUCT;
-            }
-            else
-            {
-              return false;
-              //parser->Error("mz: type not found, check namespace: " + typeName);
-            }
-          }
-      }
+    return false;
+  }
+
+  if (auto ty = LookupPrimitiveType(typeName))
+  {
+    type = *ty;
+    return true;
+  }
+  if (typeName.starts_with("[") && typeName.ends_with("]"))
+  {
+    if (ResolveDynamicType(std::string(typeName.begin() + 1, typeName.end() - 1), field, type))
+    {
+      type.element = type.base_type;
+      type.base_type = BASE_TYPE_VECTOR;
       return true;
-  }  
+    }
+    return false;
+  }
+
+  if (auto enum_def = LookupTableByName(enums_, typeName, *current_namespace_, 0))
+  {
+    type = Type(BASE_TYPE_UNION, 0, enum_def);
+    return true;
+  }
+
+  if (auto struct_def = LookupStruct(typeName))
+  {
+    type = Type(BASE_TYPE_STRUCT, struct_def);
+    return true;
+  }
+
   return false;
 }
 
 CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, const StructDef* struct_def_inner, const char* typeName)
 {
-  if (ResolveDynamicType(typeName, val.type, field))
+  const Type saved_type = val.type;
+  if (!ResolveDynamicType(typeName, field, val.type))
   {
-    if (val.type.struct_def)
+    return Error("Type not found: " + std::string(typeName));
+  }
+
+  FlatBufferBuilder fbb;
+  const Type ty = val.type;
+  switch (ty.base_type)
+  {
+  case BASE_TYPE_STRUCT:
+  {
+    if (ty.struct_def->fixed)
     {
-      if (val.type.struct_def->fixed)
-      {
-        ECHECK(ParseTable(*val.type.struct_def, &val.constant, nullptr, true));
-        builder_.ForceVectorAlignment(val.constant.size(), sizeof(uint8_t), val.type.struct_def->minalign);
-        auto off = builder_.CreateVector(val.constant.c_str(), val.constant.size());
-        val.constant = NumToString(off.o);
-      }
-      else
-      {
-        // we have to use a separate parser 
-        // checkout ParseNestedFlatbuffer()
-        auto cursor_at_value_begin = cursor_;
-        ECHECK(SkipAnyJsonValue());
-        std::string substring(cursor_at_value_begin - 1, cursor_ - 1);
+      ECHECK(ParseTable(*ty.struct_def, &val.constant, nullptr, true));
+      builder_.ForceVectorAlignment(val.constant.size(), sizeof(uint8_t), ty.struct_def->minalign);
+      auto off = builder_.CreateVector(val.constant.c_str(), val.constant.size());
+      val.constant = NumToString(off.o);
+      break;
+    }
+    // we have to use a separate parser 
+    // checkout ParseNestedFlatbuffer()
+    auto cursor_at_value_begin = cursor_;
+    ECHECK(SkipAnyJsonValue());
+    std::string substring(cursor_at_value_begin - 1, cursor_ - 1);
 
-        // Create and initialize new parser
-        Parser nested_parser;
-        nested_parser.root_struct_def_ = val.type.struct_def;
-        nested_parser.enums_ = enums_;
-        nested_parser.opts = opts;
-        nested_parser.uses_flexbuffers_ = false;
-        nested_parser.parse_depth_counter_ = parse_depth_counter_;
-        // Parse JSON substring into new flatbuffer builder using nested_parser
-        bool ok = nested_parser.Parse(substring.c_str(), nullptr, nullptr);
+    // Create and initialize new parser
+    Parser nested_parser;
+    nested_parser.root_struct_def_ = ty.struct_def;
+    nested_parser.enums_ = enums_;
+    nested_parser.opts = opts;
+    nested_parser.uses_flexbuffers_ = false;
+    nested_parser.parse_depth_counter_ = parse_depth_counter_;
+    // Parse JSON substring into new flatbuffer builder using nested_parser
+    bool ok = nested_parser.Parse(substring.c_str(), nullptr, nullptr);
 
-        // Clean nested_parser to avoid deleting the elements in
-        // the SymbolTables on destruction
-        nested_parser.enums_.dict.clear();
-        nested_parser.enums_.vec.clear();
+    // Clean nested_parser to avoid deleting the elements in
+    // the SymbolTables on destruction
+    nested_parser.enums_.dict.clear();
+    nested_parser.enums_.vec.clear();
 
-        if (!ok) 
-          ECHECK(Error(nested_parser.error_));
+    if (!ok)
+      ECHECK(Error(nested_parser.error_));
 
-        // Force alignment for nested flatbuffer
-        builder_.ForceVectorAlignment(nested_parser.builder_.GetSize(), sizeof(uint8_t), nested_parser.builder_.GetBufferMinAlignment());
-        auto off = builder_.CreateVector(nested_parser.builder_.GetBufferPointer(), nested_parser.builder_.GetSize());
-        val.constant = NumToString(off.o);
-      }
+    // Force alignment for nested flatbuffer
+    builder_.ForceVectorAlignment(nested_parser.builder_.GetSize(), sizeof(uint8_t), nested_parser.builder_.GetBufferMinAlignment());
+    auto off = builder_.CreateVector(nested_parser.builder_.GetBufferPointer(), nested_parser.builder_.GetSize());
+    val.constant = NumToString(off.o);
+    break;
+  }
+  case BASE_TYPE_STRING:
+  {
+    auto& str = attribute_;
+    EXPECT(kTokenStringConstant);
+    builder_.ForceVectorAlignment(str.size() + 1, sizeof(uint8_t), 1);
+    auto off = builder_.CreateVector(str.c_str(), str.size() + 1);
+    val.constant = NumToString(off.o);
+    break;
+  }
+  case BASE_TYPE_VECTOR:
+  {
+    uoffset_t off;
+    auto bldr = std::move(builder_);
+    ECHECK(ParseVector(ty, &off, field, fieldn));
+    builder_.Finish(Offset<Vector<uint8_t>>(off));
+    auto data = builder_.Release();
+    auto vec = GetRoot<Vector<uint8_t>>(data.data());
+
+    if(0 == vec->size())
+    {
+      uoffset_t len = 0;
+      static_assert(sizeof(Vector<uint8_t>) == sizeof(uoffset_t));
+      val.constant = NumToString(bldr.CreateVector((uint8_t*)&len, sizeof(len)).o);
     }
     else
     {
-      // scalars and strings
-      if (val.type.base_type == BASE_TYPE_STRING)
-      {
-        auto str = attribute_;
-        EXPECT(kTokenStringConstant);
-        builder_.ForceVectorAlignment(str.size() + 1, sizeof(uint8_t), 1);
-        auto off = builder_.CreateVector(str.c_str(), str.size() + 1);
-        val.constant = NumToString(off.o);
-      }
-      else
-      {
-        ECHECK(ParseAnyValue(val, field, fieldn, struct_def_inner, 0));
-
-        FlatBufferBuilder fbb;
-        switch (val.type.base_type) 
-        {
-        #undef FLATBUFFERS_TD
-        #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
-          case BASE_TYPE_ ## ENUM: \
-            {\
-                CTYPE val_; \
-                ECHECK(atot(val.constant.c_str(), *this, &val_)); \
-                fbb.AddElement(val.offset, val_); \
-            } \
-            break;
-          FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
-        #undef FLATBUFFERS_TD
-        }
-                      
-        if (!fbb.GetSize())
-        {
-          return Error("Only structs, tables, scalars and strings are supported as dynamic types");
-        }
-                      
-        builder_.ForceVectorAlignment(fbb.GetSize(), sizeof(uint8_t), 1);
-        auto off = builder_.CreateVector(fbb.GetCurrentBufferPointer(), fbb.GetSize());
-        val.constant = NumToString(off.o);
-      }
+      val.constant = NumToString(bldr.CreateVector((uint8_t*)vec, data.size() - 4).o);
     }
-    val.type.struct_def = nullptr;
-    val.type.element = BASE_TYPE_UCHAR;
-    val.type.base_type = BASE_TYPE_VECTOR;
+    builder_ = std::move(bldr);
+    break;
   }
-  else
-    return Error("Type not found: " + std::string(typeName));
+  case BASE_TYPE_UNION:
+  {
+    switch (ty.enum_def->underlying_type.base_type)
+    {
+    case BASE_TYPE_BOOL:
+    case BASE_TYPE_CHAR:
+    case BASE_TYPE_UCHAR:
+    case BASE_TYPE_SHORT:
+    case BASE_TYPE_USHORT:
+    case BASE_TYPE_INT:
+    case BASE_TYPE_UINT:
+    case BASE_TYPE_LONG:
+    case BASE_TYPE_ULONG:
+    {
+      std::string value;
+      ECHECK(ParseEnumFromString(ty, &value));
+      NEXT();
+
+      auto enum_val = ty.enum_def->FindByValue(value);
+
+      uint8_t data[8] = {};
+
+      IsUnsigned(ty.enum_def->underlying_type.base_type) ?
+        *(uint64_t*)data = enum_val->GetAsUInt64() :
+        *(int64_t*)data = enum_val->GetAsInt64();
+
+      builder_.ForceVectorAlignment(fbb.GetSize(), sizeof(uint8_t), 1);
+      auto off = builder_.CreateVector(data, SizeOf(ty.enum_def->underlying_type.base_type));
+      val.constant = NumToString(off.o);
+      break;
+    }
+    case BASE_TYPE_STRUCT:
+    default:
+      assert(0);
+    }
+    break;
+  }
+  {
+#undef FLATBUFFERS_TD
+#define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
+        case BASE_TYPE_ ## ENUM: \
+          {\
+              ECHECK(ParseAnyValue(val, field, fieldn, struct_def_inner, 0)); \
+              CTYPE val_; \
+              ECHECK(atot(val.constant.c_str(), *this, &val_)); \
+              builder_.ForceVectorAlignment(fbb.GetSize(), sizeof(uint8_t), 1); \
+              auto off = builder_.CreateVector((uint8_t*)&val_, sizeof(val_)); \
+              val.constant = NumToString(off.o); \
+          } \
+          break;
+    FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+#undef FLATBUFFERS_TD
+  }
+  default:
+  {
+    assert(0);
+    break;
+  }
+  }
+
+  val.type = saved_type;
 
   return NoError();
 }

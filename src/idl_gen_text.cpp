@@ -335,7 +335,7 @@ struct JsonPrinter {
       }
 
       auto typeName = table->GetPointer<String*>(typeNameFieldDef->value.offset)->c_str();
-      if (mzParser->ResolveDynamicType(typeName, type, &fd))
+      if (mzParser->ResolveDynamicType(typeName, &fd, type))
       {
         auto data = table->GetPointer<const Vector<uint8_t> *>(fd.value.offset);
 
@@ -516,6 +516,13 @@ const char *GenTextFromTable(const Parser &parser, const void *table,
   if (struct_def == nullptr) { return "unknown struct"; }
   auto root = static_cast<const Table *>(table);
   return GenerateTextImpl(parser, root, *struct_def, _text);
+}
+
+const char* GenTextFromVector(const Parser& parser, const void* data,
+  const flatbuffers::Type& type, std::string* _text) {
+
+  JsonPrinter printer(parser, *_text);
+  return printer.PrintOffset(data, type, 0, 0, -1);
 }
 
 // Deprecated: please use `GenText`

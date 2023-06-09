@@ -1212,7 +1212,7 @@ class Parser : public ParserState {
 public:
   const std::unordered_map<std::string, Type> *GetPrimitiveTypes() const;
   const Type* LookupPrimitiveType(std::string const &name);
-  bool ResolveDynamicType(const char *typeName, Type &type, const FieldDef *field);
+  bool ResolveDynamicType(std::string const& typeName, const FieldDef *field, Type& type);
   const char* LookupDynamicFieldType(const FieldDef *dynamic_field, const StructDef *struct_def);
   bool CompleteMissingField(FieldDef *absent_field, const StructDef &struct_def, size_t& fieldn_outer, int32_t lastFieldCount);
   FLATBUFFERS_CHECKED_ERROR ParseDynamic(Value &val, FieldDef *field, size_t fieldn, const StructDef *struct_def_inner, const char *typeName);
@@ -1246,6 +1246,8 @@ extern const char *GenerateTextFile(const Parser &parser,
 extern const char *GenTextFromTable(const Parser &parser, const void *table,
                                     const std::string &tablename,
                                     std::string *text);
+extern const char* GenTextFromVector(const Parser& parser, const void* vector,
+                                     const Type& type, std::string* _text);
 extern const char *GenText(const Parser &parser, const void *flatbuffer,
                            std::string *text);
 extern const char *GenTextFile(const Parser &parser, const std::string &path,
