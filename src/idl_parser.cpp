@@ -4675,18 +4675,9 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
     ECHECK(ParseVector(ty, &off, field, fieldn));
     builder_.Finish(Offset<Vector<uint8_t>>(off));
     auto data = builder_.Release();
-    auto vec = GetRoot<Vector<uint8_t>>(data.data());
+    auto vec = (uint8_t*)GetRoot<Vector<uint8_t>>(data.data());
 
-    if(0 == vec->size())
-    {
-      uoffset_t len = 0;
-      static_assert(sizeof(Vector<uint8_t>) == sizeof(uoffset_t));
-      val.constant = NumToString(bldr.CreateVector((uint8_t*)&len, sizeof(len)).o);
-    }
-    else
-    {
-      val.constant = NumToString(bldr.CreateVector((uint8_t*)vec, data.size() - 4).o);
-    }
+    val.constant = NumToString(bldr.CreateVector(vec, data.data() + data.size() - vec).o);
     builder_ = std::move(bldr);
     break;
   }

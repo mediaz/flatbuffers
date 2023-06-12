@@ -339,33 +339,50 @@ struct JsonPrinter {
       {
         auto data = table->GetPointer<const Vector<uint8_t> *>(fd.value.offset);
 
-        if (type.base_type == BASE_TYPE_STRUCT)
+        switch (type.base_type)
         {
+        case BASE_TYPE_STRUCT:
           // empty vectors should be filtered out 
           // by ValidateDynamicFieldPresence()
           FLATBUFFERS_ASSERT(data->size());
-
-          return GenStruct(*type.struct_def, IsStruct(type) 
-                            ? reinterpret_cast<const Table *>(data->Data())
-                            : flatbuffers::GetRoot<Table>(data->Data()), indent);
-        }
-        if (type.base_type == BASE_TYPE_STRING)
+          return GenStruct(*type.struct_def, IsStruct(type)
+            ? reinterpret_cast<const Table*>(data->Data())
+            : flatbuffers::GetRoot<Table>(data->Data()), indent);
+        case BASE_TYPE_VECTOR:
         {
-          auto str = (const char *)data->Data();
+          return PrintOffset(data->Data(), type, indent, prev_val, -1);
+          break;
+        }
+        case BASE_TYPE_STRING:
+        {
+          auto str = (const char*)data->Data();
           auto size = std::min(strlen(str), std::max<size_t>(0, data->size() - 1));
           bool ok = EscapeString(str, size, &text, opts.allow_non_utf8, opts.natural_utf8);
           return ok ? nullptr : "string contains non-utf8 bytes";
         }
-        switch (type.base_type) 
+        case BASE_TYPE_UNION:
         {
-          #undef FLATBUFFERS_TD
-          #define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
+          switch (type.enum_def->underlying_type.base_type)
+          {
+#undef FLATBUFFERS_TD
+#define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
             case BASE_TYPE_ ## ENUM: \
               PrintScalar<CTYPE>(*((CTYPE*)(data->Data())), type, indent);  return nullptr;
-              FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
-          #undef FLATBUFFERS_TD
+            FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+#undef FLATBUFFERS_TD
+          }
+          return "Unsupported type";
         }
-        return "Unsupported type";
+#undef FLATBUFFERS_TD
+#define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...) \
+            case BASE_TYPE_ ## ENUM: \
+              PrintScalar<CTYPE>(*((CTYPE*)(data->Data())), type, indent);  return nullptr;
+        FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+#undef FLATBUFFERS_TD
+        default:
+          return "Unsupported type";
+        }
+
       }
     }
 #endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
