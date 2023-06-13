@@ -4661,7 +4661,7 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
   }
   case BASE_TYPE_STRING:
   {
-    auto& str = attribute_;
+    auto str = attribute_;
     EXPECT(kTokenStringConstant);
     builder_.ForceVectorAlignment(str.size() + 1, sizeof(uint8_t), 1);
     auto off = builder_.CreateVector(str.c_str(), str.size() + 1);
