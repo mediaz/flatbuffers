@@ -4612,7 +4612,9 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
   const Type saved_type = val.type;
   if (!ResolveDynamicType(typeName, field, val.type))
   {
-    return Error("Type not found: " + std::string(typeName));
+    Message("Type not found, trying to omit: " + std::string(typeName));
+    ECHECK(SkipAnyJsonValue());
+    return NoError();
   }
 
   FlatBufferBuilder fbb;
