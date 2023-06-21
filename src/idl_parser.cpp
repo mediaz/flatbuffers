@@ -4613,6 +4613,12 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
   if (!ResolveDynamicType(typeName, field, val.type))
   {
     Message("Type not found, trying to omit: " + std::string(typeName));
+
+    auto str = attribute_;
+    builder_.ForceVectorAlignment(str.size() + 1, sizeof(uint8_t), 1);
+    auto off = builder_.CreateVector(str.c_str(), str.size() + 1);
+    val.constant = NumToString(off.o);
+    
     ECHECK(SkipAnyJsonValue());
     return NoError();
   }
