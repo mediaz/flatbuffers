@@ -4622,8 +4622,11 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
       data = std::string(cursor_at_valuebegin - 1, cursor_ - 1);
     }
     else
-    { 
+    {
+
       data = attribute_;
+      if(token_ == kTokenStringConstant)
+        data = "\"" + data + "\"";
       ECHECK(SkipAnyJsonValue());
     }
 
