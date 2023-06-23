@@ -350,7 +350,7 @@ struct JsonPrinter {
             : flatbuffers::GetRoot<Table>(data->Data()), indent);
         case BASE_TYPE_VECTOR:
         {
-          return PrintOffset(data->Data(), type, indent, prev_val, -1);
+          return PrintOffset(GetRoot<void>(data->Data()), type, indent, prev_val, -1);
           break;
         }
         case BASE_TYPE_STRING:
