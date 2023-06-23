@@ -384,6 +384,14 @@ struct JsonPrinter {
         }
 
       }
+      else
+      {
+        auto data = table->GetPointer<const Vector<uint8_t> *>(fd.value.offset);
+        auto str = (const char*)data->Data();
+        auto size = std::min(strlen(str), std::max<size_t>(0, data->size() - 1));
+        text += str;
+        return nullptr;
+      }
     }
 #endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
     return PrintOffset(val, fd.value.type, indent, prev_val, -1);
