@@ -4502,7 +4502,7 @@ std::string Parser::ConformTo(const Parser &base) {
 }
 
 #if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format off
-const std::unordered_map<std::string, Type> *Parser::GetPrimitiveTypes() const {
+const std::unordered_map<std::string, Type> *Parser::GetPrimitiveTypes() {
   static std::unordered_map<std::string, Type> primitives = {
     { "i8",       flatbuffers::Type(BASE_TYPE_CHAR)   },
     { "u8",       flatbuffers::Type(BASE_TYPE_UCHAR)  },
@@ -4546,6 +4546,19 @@ const flatbuffers::Type *Parser::LookupPrimitiveType(std::string const &name) {
   if (result != lookup->end())
     return &result->second;
 
+  return nullptr;
+}
+
+const std::string * Parser::LookupPrimitiveTypeName(BaseType baseType)
+{
+  auto lookup = GetPrimitiveTypes();
+  for (auto const& [name, type] : *lookup)
+  {
+    if (type.base_type == baseType)
+    {
+      return &name;
+    }
+  }
   return nullptr;
 }
 
