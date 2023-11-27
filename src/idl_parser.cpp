@@ -27,9 +27,9 @@
 #include "flatbuffers/reflection_generated.h"
 #include "flatbuffers/util.h"
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 #  include <../../stduuid/include/uuid.h>
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 
 
 namespace flatbuffers {
@@ -1404,8 +1404,8 @@ CheckedError Parser::ParseAnyValue(Value &val, FieldDef *field,
       break;
     }
     case BASE_TYPE_STRUCT:
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
-      if (mzIsId(val.type)) 
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
+      if (nosIsId(val.type)) 
       {
         // parse string id and serialize uuid struct
         val.constant.assign(val.type.struct_def->bytesize, 0); // 16
@@ -1421,7 +1421,7 @@ CheckedError Parser::ParseAnyValue(Value &val, FieldDef *field,
         }
       } 
       else
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
         ECHECK(ParseTable(*val.type.struct_def, &val.constant, nullptr));
       break;
     case BASE_TYPE_STRING: {
@@ -1517,9 +1517,9 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
   ParseDepthGuard depth_guard(this);
   ECHECK(depth_guard.Check());
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
   int32_t lastFieldCount = int32_t(field_stack_.size());
-#endif // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
 
   size_t fieldn_outer = 0;
   auto err = ParseTableDelimiters(
@@ -1556,13 +1556,13 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
               ECHECK(
                 ParseNestedFlatbuffer(val, field, fieldn, struct_def_inner));
             } else {
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
               if (auto typeName = LookupDynamicFieldType(field, struct_def_inner))
               {
                 ECHECK(ParseDynamic(val, field, fieldn, struct_def_inner, typeName));
               }
               else
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
               ECHECK(ParseAnyValue(val, field, fieldn, struct_def_inner, 0));
             }
             // Hardcoded insertion-sort with error-check.
@@ -1589,11 +1589,11 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
   for (auto field_it = struct_def.fields.vec.begin();
        field_it != struct_def.fields.vec.end(); ++field_it) {
     auto required_field = *field_it;
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
     if (!(fill || required_field->attributes.Lookup("dynamic")) && !required_field->IsRequired()) { continue; }
 #else
     if (!required_field->IsRequired()) { continue; }
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
     bool found = false;
     for (auto pf_it = field_stack_.end() - fieldn_outer;
          pf_it != field_stack_.end(); ++pf_it) {
@@ -1603,12 +1603,12 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
         break;
       }
     }
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
     if (!found && (fill || required_field->attributes.Lookup("dynamic")))
     {
       found = CompleteMissingField(required_field, struct_def, fieldn_outer, lastFieldCount);
     }
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
     if (!found) {
       return Error("required field is missing: " + required_field->name +
                    " in " + struct_def.name);
@@ -4501,7 +4501,7 @@ std::string Parser::ConformTo(const Parser &base) {
   return "";
 }
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
 const std::unordered_map<std::string, Type> *Parser::GetPrimitiveTypes() {
   static std::unordered_map<std::string, Type> primitives = {
     { "i8",       flatbuffers::Type(BASE_TYPE_CHAR)   },
@@ -4820,6 +4820,6 @@ bool Parser::CompleteMissingField(FieldDef* absent_field, const StructDef &struc
 
   return found;
 }
-#endif // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format on
+#endif // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format on
 
 }  // namespace flatbuffers

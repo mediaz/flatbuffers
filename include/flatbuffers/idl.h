@@ -1208,7 +1208,7 @@ class Parser : public ParserState {
 
   int anonymous_counter_;
   int parse_depth_counter_;  // stack-overflow guard
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
 public:
   static const std::unordered_map<std::string, Type> *GetPrimitiveTypes();
   static const Type* LookupPrimitiveType(std::string const &name);
@@ -1218,9 +1218,9 @@ public:
   bool CompleteMissingField(FieldDef *absent_field, const StructDef &struct_def, size_t& fieldn_outer, int32_t lastFieldCount);
   FLATBUFFERS_CHECKED_ERROR ParseDynamic(Value &val, FieldDef *field, size_t fieldn, const StructDef *struct_def_inner, const char *typeName);
 
-  bool mzIsId(const StructDef *def) { return (def && def->attributes.Lookup("mz_id"));}
-  bool mzIsId(const Type &type) { return (type.base_type == BASE_TYPE_STRUCT && mzIsId(type.struct_def)); }
-#endif // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format on
+  bool nosIsId(const StructDef *def) { return (def && def->attributes.Lookup("nos_id"));}
+  bool nosIsId(const Type &type) { return (type.base_type == BASE_TYPE_STRUCT && nosIsId(type.struct_def)); }
+#endif // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format on
 };
 
 // Utility functions for multiple generators:

@@ -26,9 +26,9 @@
 #include "flatbuffers/idl.h"
 #include "flatbuffers/util.h"
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 #  include <../../stduuid/include/uuid.h>
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 
 namespace flatbuffers {
 
@@ -115,7 +115,7 @@ struct JsonPrinter {
                              const Type &type, int indent, const uint8_t *) {
     const auto elem_indent = indent + Indent();
     text += '[';
-#  if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#  if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 // clang-format off
     if (!size)
     { // do not spare a line on empty arrays
@@ -123,7 +123,7 @@ struct JsonPrinter {
       return nullptr;
     }
 // clang-format on
-#  endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#  endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
     AddNewLine();
     for (SizeT i = 0; i < size; i++) {
       if (i) {
@@ -148,7 +148,7 @@ struct JsonPrinter {
     const auto is_struct = IsStruct(type);
     const auto elem_indent = indent + Indent();
     text += '[';
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 // clang-format off
     if (!size)
     { // do not spare a line on empty arrays
@@ -156,7 +156,7 @@ struct JsonPrinter {
       return nullptr;
     }
 // clang-format on
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
     AddNewLine();
     for (SizeT i = 0; i < size; i++) {
       if (i) {
@@ -324,7 +324,7 @@ struct JsonPrinter {
                 ? table->GetStruct<const void *>(fd.value.offset)
                 : table->GetPointer<const void *>(fd.value.offset);
     }
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
     Type type = fd.value.type;
     if (auto typeNameField = fd.attributes.Lookup("dynamic"))
     {
@@ -335,7 +335,7 @@ struct JsonPrinter {
       }
 
       auto typeName = table->GetPointer<String*>(typeNameFieldDef->value.offset)->c_str();
-      if (mzParser->ResolveDynamicType(typeName, &fd, type))
+      if (nosParser->ResolveDynamicType(typeName, &fd, type))
       {
         auto data = table->GetPointer<const Vector<uint8_t> *>(fd.value.offset);
 
@@ -393,11 +393,11 @@ struct JsonPrinter {
         return nullptr;
       }
     }
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
     return PrintOffset(val, fd.value.type, indent, prev_val, -1);
   }
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
   void ValidateDynamicFieldPresence(FieldDef const& fd, Table const* table, bool& is_present, bool& output_anyway)
   {
     if (fd.attributes.Lookup("dynamic") && 
@@ -407,14 +407,14 @@ struct JsonPrinter {
         table->GetPointer<const Vector<uint8_t> *>(fd.value.offset)->size() == 0)
       is_present = output_anyway = false;
   }
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
 
   // Generate text for a struct or table, values separated by commas, indented,
   // and bracketed by "{}"
   const char *GenStruct(const StructDef &struct_def, const Table *table,
                         int indent) {
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
-    if (mzParser->mzIsId(&struct_def))
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
+    if (nosParser->nosIsId(&struct_def))
     {
       uint8_t *data = (uint8_t *)table;
       uuids::uuid id(data, data + 16);
@@ -422,7 +422,7 @@ struct JsonPrinter {
       bool ok = EscapeString(s.c_str(), s.size(), &text, opts.allow_non_utf8, opts.natural_utf8);
         return ok ? nullptr : "string contains non-utf8 bytes";
     }
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
     text += '{';
     int fieldout = 0;
     const uint8_t *prev_val = nullptr;
@@ -433,22 +433,22 @@ struct JsonPrinter {
       auto is_present = struct_def.fixed || table->CheckField(fd.value.offset);
       auto output_anyway = (opts.output_default_scalars_in_json || fd.key) &&
                            IsScalar(fd.value.type.base_type) && !fd.deprecated;
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
     ValidateDynamicFieldPresence(fd, table, is_present, output_anyway);
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
       if (is_present || output_anyway) {
         if (fieldout++) { AddComma(); }
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
         if (struct_def.fields.vec.size() > 4)
         {
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
         AddNewLine();
         AddIndent(elem_indent);
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
         }
         else
           AddIndent(1);
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
         OutputIdentifier(fd.name);
         if (!opts.protobuf_ascii_alike ||
             (fd.value.type.base_type != BASE_TYPE_STRUCT &&
@@ -484,25 +484,25 @@ struct JsonPrinter {
         }
       }
     }
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS  // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
         if (struct_def.fields.vec.size() > 4)
         {
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
     AddNewLine();
     AddIndent(indent);
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
         }
         else
           AddIndent(1);
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // clang-format on
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
     text += '}';
     return nullptr;
   }
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
-  Parser* mzParser;
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+  Parser* nosParser;
   JsonPrinter(const Parser &parser, std::string &dest)
-      : mzParser(const_cast<Parser *>(&parser)), opts(parser.opts), text(dest) {
+      : nosParser(const_cast<Parser *>(&parser)), opts(parser.opts), text(dest) {
     text.reserve(1024);  // Reduce amount of inevitable reallocs.
   }
 #else
@@ -510,7 +510,7 @@ struct JsonPrinter {
       : opts(parser.opts), text(dest) {
     text.reserve(1024);  // Reduce amount of inevitable reallocs.
   }
-#endif  // defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 
   const IDLOptions &opts;
   std::string &text;

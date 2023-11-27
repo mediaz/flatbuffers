@@ -57,11 +57,11 @@ option(FLATBUFFERS_SKIP_MONSTER_EXTRA
 option(FLATBUFFERS_STRICT_MODE
       "Build flatbuffers with all warnings as errors (-Werror or /WX)."
       OFF)
-# Begin MZ_CUSTOM_FLATBUFFERS
-option(MZ_CUSTOM_FLATBUFFERS
-      "Build customized flatbuffers for mediaZ."
+# Begin NOS_CUSTOM_FLATBUFFERS
+option(NOS_CUSTOM_FLATBUFFERS
+      "Build customized flatbuffers for nodos."
       OFF)
-# End MZ_CUSTOM_FLATBUFFERS
+# End NOS_CUSTOM_FLATBUFFERS
 
 
 if(NOT DEFINED FLATBUFFERS_CPP_STD)
@@ -158,13 +158,13 @@ set(FlatBuffers_Library_SRCS
   src/util.cpp
 )
 
-# Begin MZ_CUSTOM_FLATBUFFERS
-if (${MZ_CUSTOM_FLATBUFFERS})
+# Begin NOS_CUSTOM_FLATBUFFERS
+if (${NOS_CUSTOM_FLATBUFFERS})
   list(APPEND FlatBuffers_Library_SRCS
     src/idl_gen_json_schema.cpp
   )
 endif()
-# End MZ_CUSTOM_FLATBUFFERS
+# End NOS_CUSTOM_FLATBUFFERS
 
 set(FlatBuffers_Compiler_SRCS
   ${FlatBuffers_Library_SRCS}
@@ -444,11 +444,11 @@ endif()
 if(FLATBUFFERS_BUILD_FLATLIB)
   add_library(flatbuffers STATIC ${FlatBuffers_Library_SRCS})
 
-  # Begin MZ_CUSTOM_FLATBUFFERS
-  if (${MZ_CUSTOM_FLATBUFFERS})
-    target_compile_definitions(flatbuffers PUBLIC MZ_CUSTOM_FLATBUFFERS=1)
+  # Begin NOS_CUSTOM_FLATBUFFERS
+  if (${NOS_CUSTOM_FLATBUFFERS})
+    target_compile_definitions(flatbuffers PUBLIC NOS_CUSTOM_FLATBUFFERS=1)
   endif()
-  # End MZ_CUSTOM_FLATBUFFERS
+  # End NOS_CUSTOM_FLATBUFFERS
 
   # Attach header directory for when build via add_subdirectory().
   target_include_directories(flatbuffers

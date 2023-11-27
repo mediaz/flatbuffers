@@ -34,7 +34,7 @@ template<class T> static std::string GenFullName(const T *enum_def) {
   std::string full_name;
   const auto &name_spaces = enum_def->defined_namespace->components;
   for (auto ns = name_spaces.cbegin(); ns != name_spaces.cend(); ++ns) {
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
     full_name.append(*ns + ".");
 #else
     full_name.append(*ns + "_");
@@ -48,7 +48,7 @@ template<class T> static std::string GenTypeRef(const T *enum_def) {
   return "\"$ref\" : \"#/definitions/" + GenFullName(enum_def) + "\"";
 }
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 static std::string GenTypeRef(BaseType type) {
   switch (type) {
     case BASE_TYPE_BOOL: return "\"$ref\": \"#/definitions/bool\"";
@@ -108,7 +108,7 @@ static std::string GenType(BaseType type) {
              NumToString(std::numeric_limits<uint64_t>::max());
     case BASE_TYPE_FLOAT:
     case BASE_TYPE_DOUBLE: return "\"type\" : \"number\"";
-#if not (defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS)
+#if not (defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS)
     case BASE_TYPE_STRING: return "\"type\" : \"string\"";
 #endif
     default: return "";
@@ -118,7 +118,7 @@ static std::string GenType(BaseType type) {
 static std::string GenBaseType(const Type &type) {
   if (type.struct_def != nullptr) { return GenTypeRef(type.struct_def); }
   if (type.enum_def != nullptr) { return GenTypeRef(type.enum_def); }
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
   if (type.base_type == BASE_TYPE_STRING) { return GenType("string"); }
   return GenTypeRef(type.base_type);
 #else
@@ -132,7 +132,7 @@ static std::string GenArrayType(const Type &type) {
       element_type = GenTypeRef(type.struct_def);
     } else if (type.enum_def != nullptr) {
       element_type = GenTypeRef(type.enum_def);
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
     } else if (type.element == BASE_TYPE_STRING) {
       element_type = GenType("string");
     } else {
@@ -165,7 +165,7 @@ static std::string GenType(const Type &type) {
           union_type_string.append(
               "{ " + GenTypeRef(union_type->union_type.struct_def) + " }");
         }
-#if defined (MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS // Unions support named types like SomeUnionEntry:string, so this fix can also be applied to upstream flatbuffers
+#if defined (NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // Unions support named types like SomeUnionEntry:string, so this fix can also be applied to upstream flatbuffers
         else {
           union_type_string.append("{ " + GenBaseType(union_type->union_type) + " }");
         }
@@ -184,7 +184,7 @@ static std::string GenType(const Type &type) {
   }
 }
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 static std::string GenPrimitiveTypes(int indent = 0) {
   std::string indentStr(indent, ' ');
   return indentStr + "\"bool\": { " + GenType(BASE_TYPE_BOOL) + " },\n" +
@@ -277,7 +277,7 @@ class JsonSchemaGenerator : public BaseGenerator {
              "\"$schema\": \"https://json-schema.org/draft/2019-09/schema\"," +
              NewLine();
     code_ += Indent(1) + "\"definitions\": {" + NewLine();
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
     // add builtin types. the builtins inside structures can also refer to these,
     // instead of using JSON schema primitives.
     code_ += Indent(2) + GenPrimitiveTypes(3) + NewLine();
@@ -329,7 +329,7 @@ class JsonSchemaGenerator : public BaseGenerator {
         typeLine += GenType(property->value.type);
         typeLine += arrayInfo;
         typeLine += deprecated_info;
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
         if (property->attributes.dict.size() > 0) { // Generate attributes
           typeLine += "," + NewLine() + Indent(8) + "\"attributes\" : {";
           for (auto const &[key, value] : property->attributes.dict) {
@@ -351,7 +351,7 @@ class JsonSchemaGenerator : public BaseGenerator {
       }
       code_ += Indent(3) + "}," + NewLine();  // close properties
 
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
       if (structure->fixed) {
         code_ += Indent(3) + "\"required\": [" + NewLine();
         for (auto prop = properties.cbegin(); prop != properties.cend();
@@ -380,7 +380,7 @@ class JsonSchemaGenerator : public BaseGenerator {
         required_string.append("],");
         code_ += required_string + NewLine();
       }
-#if defined(MZ_CUSTOM_FLATBUFFERS) && MZ_CUSTOM_FLATBUFFERS
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
       }
 #endif
       code_ += Indent(3) + "\"additionalProperties\" : false" + NewLine();
