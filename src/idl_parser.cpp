@@ -1590,7 +1590,7 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
        field_it != struct_def.fields.vec.end(); ++field_it) {
     auto required_field = *field_it;
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
-    if (!(fill || required_field->attributes.Lookup("dynamic")) && !required_field->IsRequired()) { continue; }
+    if (!fill && !required_field->IsRequired()) { continue; }
 #else
     if (!required_field->IsRequired()) { continue; }
 #endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
@@ -1604,7 +1604,7 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
       }
     }
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
-    if (!found && (fill || required_field->attributes.Lookup("dynamic")))
+    if (!found && fill)
     {
       found = CompleteMissingField(required_field, struct_def, fieldn_outer, lastFieldCount);
     }
@@ -4501,7 +4501,19 @@ std::string Parser::ConformTo(const Parser &base) {
   return "";
 }
 
-#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+std::optional<std::string> Parser::GetMigratedTypeName(std::string const& typeName) {
+  std::optional<std::string> migratedTypeName = std::nullopt;
+  if (auto offset = typeName.find("mz."); offset != std::string::npos) {
+    migratedTypeName = typeName;
+    migratedTypeName->replace(offset, strlen("mz."), "nos.");
+  }
+  if (auto it = MigratedTypesDictionary.find(migratedTypeName ? *migratedTypeName : typeName);
+      it != MigratedTypesDictionary.end())
+    migratedTypeName = it->second;
+  return migratedTypeName;
+}
+// clang-format off
 const std::unordered_map<std::string, Type> *Parser::GetPrimitiveTypes() {
   static std::unordered_map<std::string, Type> primitives = {
     { "i8",       flatbuffers::Type(BASE_TYPE_CHAR)   },
@@ -4562,6 +4574,42 @@ const std::string * Parser::LookupPrimitiveTypeName(BaseType baseType)
   return nullptr;
 }
 
+bool Parser::LookupDynamicType(std::string const & typeName, Type & type)
+{
+  if(auto migratedTypeName = GetMigratedTypeName(typeName))
+    return LookupDynamicType(*migratedTypeName, type);
+
+  if (auto ty = LookupPrimitiveType(typeName))
+  {
+    type = *ty;
+    return true;
+  }
+  if (typeName.starts_with("[") && typeName.ends_with("]"))
+  {
+    if (LookupDynamicType(std::string(typeName.begin() + 1, typeName.end() - 1), type))
+    {
+      type.element = type.base_type;
+      type.base_type = BASE_TYPE_VECTOR;
+      return true;
+    }
+    return false;
+  }
+
+  if (auto enum_def = LookupTableByName(enums_, typeName, *current_namespace_, 0))
+  {
+    type = Type(BASE_TYPE_UNION, 0, enum_def);
+    return true;
+  }
+
+  if (auto struct_def = LookupStruct(typeName))
+  {
+    type = Type(BASE_TYPE_STRUCT, struct_def);
+    return true;
+  }
+
+  return false;
+}
+
 const char *Parser::LookupDynamicFieldType(const FieldDef *dynamic_field, const StructDef* struct_def) 
 {
   const char *typeName = nullptr;
@@ -4589,35 +4637,8 @@ bool Parser::ResolveDynamicType(std::string const& typeName, const FieldDef *fie
     return false;
   }
 
-  if (auto ty = LookupPrimitiveType(typeName))
-  {
-    type = *ty;
-    return true;
-  }
-  if (typeName.starts_with("[") && typeName.ends_with("]"))
-  {
-    if (ResolveDynamicType(std::string(typeName.begin() + 1, typeName.end() - 1), field, type))
-    {
-      type.element = type.base_type;
-      type.base_type = BASE_TYPE_VECTOR;
-      return true;
-    }
-    return false;
-  }
+  return LookupDynamicType(typeName, type);
 
-  if (auto enum_def = LookupTableByName(enums_, typeName, *current_namespace_, 0))
-  {
-    type = Type(BASE_TYPE_UNION, 0, enum_def);
-    return true;
-  }
-
-  if (auto struct_def = LookupStruct(typeName))
-  {
-    type = Type(BASE_TYPE_STRUCT, struct_def);
-    return true;
-  }
-
-  return false;
 }
 
 CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, const StructDef* struct_def_inner, const char* typeName)
