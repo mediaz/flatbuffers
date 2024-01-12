@@ -107,7 +107,15 @@ static std::string GenType(BaseType type) {
       return "\"type\" : \"integer\", \"minimum\" : 0, \"maximum\" : " +
              NumToString(std::numeric_limits<uint64_t>::max());
     case BASE_TYPE_FLOAT:
-    case BASE_TYPE_DOUBLE: return "\"type\" : \"number\"";
+      return "\"type\" : \"number\", \"minimum\" : " +
+             NumToString(std::numeric_limits<float>::min()) +
+             ", \"maximum\" : " +
+             NumToString(std::numeric_limits<float>::max());
+    case BASE_TYPE_DOUBLE:
+      return "\"type\" : \"number\", \"minimum\" : " +
+             NumToString(std::numeric_limits<double>::min()) +
+             ", \"maximum\" : " +
+             NumToString(std::numeric_limits<double>::max());
 #if not (defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS)
     case BASE_TYPE_STRING: return "\"type\" : \"string\"";
 #endif
