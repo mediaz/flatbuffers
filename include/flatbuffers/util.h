@@ -152,11 +152,15 @@ template<> inline std::string NumToString<char>(char t) {
 // Special versions for floats/doubles.
 template<typename T> std::string FloatToString(T t, int precision) {
   // clang-format off
-
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+    if(t != t)
+      t = 0;  // NaN
+#endif
   #ifndef FLATBUFFERS_PREFER_PRINTF
     // to_string() prints different numbers of digits for floats depending on
     // platform and isn't available on Android, so we use stringstream
     std::stringstream ss;
+
     // Use std::fixed to suppress scientific notation.
     ss << std::fixed;
     // Default precision is 6, we want that to be higher for doubles.
