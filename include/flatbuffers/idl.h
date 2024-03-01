@@ -1249,9 +1249,17 @@ extern const char *GenerateTextFile(const Parser &parser,
 
 extern const char *GenTextFromTable(const Parser &parser, const void *table,
                                     const std::string &tablename,
-                                    std::string *text);
+                                    std::string *text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
+  , bool exporting = false
+#endif
+);
 extern const char* GenTextFromVector(const Parser& parser, const void* vector,
-                                     const Type& type, std::string* _text);
+                                     const Type& type, std::string* _text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
+  , bool exporting = false
+#endif
+);
 extern const char *GenText(const Parser &parser, const void *flatbuffer,
                            std::string *text);
 extern const char *GenTextFile(const Parser &parser, const std::string &path,

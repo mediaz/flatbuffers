@@ -340,9 +340,13 @@ class JsonSchemaGenerator : public BaseGenerator {
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
         if (property->attributes.dict.size() > 0) { // Generate attributes
           typeLine += "," + NewLine() + Indent(8) + "\"attributes\" : {";
-          for (auto const &[key, value] : property->attributes.dict) {
+          for (auto it = property->attributes.dict.cbegin();
+               it != property->attributes.dict.cend();) {
+            auto const &[key, value] = *it;
             typeLine += NewLine() + Indent(9) + "\"" + key + "\" : \"" +
                         value->constant + "\"";
+            it++;
+            if (it != property->attributes.dict.cend()) typeLine += ",";
           }
           typeLine += NewLine() + Indent(8) + "}";
         }

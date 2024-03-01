@@ -430,6 +430,10 @@ struct JsonPrinter {
     for (auto it = struct_def.fields.vec.begin();
          it != struct_def.fields.vec.end(); ++it) {
       FieldDef &fd = **it;
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
+      if(Exporting && fd.attributes.Lookup("transient"))
+        continue;
+#endif
       auto is_present = struct_def.fixed || table->CheckField(fd.value.offset);
       auto output_anyway = (opts.output_default_scalars_in_json || fd.key) &&
                            IsScalar(fd.value.type.base_type) && !fd.deprecated;
@@ -501,8 +505,9 @@ struct JsonPrinter {
 
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
   Parser* nosParser;
-  JsonPrinter(const Parser &parser, std::string &dest)
-      : nosParser(const_cast<Parser *>(&parser)), opts(parser.opts), text(dest) {
+  bool Exporting;
+  JsonPrinter(const Parser &parser, std::string &dest, bool exporting)
+      : nosParser(const_cast<Parser *>(&parser)), Exporting(exporting), opts(parser.opts), text(dest) {
     text.reserve(1024);  // Reduce amount of inevitable reallocs.
   }
 #else
@@ -518,8 +523,16 @@ struct JsonPrinter {
 
 static const char *GenerateTextImpl(const Parser &parser, const Table *table,
                                     const StructDef &struct_def,
-                                    std::string *_text) {
-  JsonPrinter printer(parser, *_text);
+                                    std::string *_text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             , bool exporting
+#endif
+) {
+  JsonPrinter printer(parser, *_text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             , exporting
+#endif
+  );
   auto err = printer.GenStruct(struct_def, table, 0);
   if (err) return err;
   printer.AddNewLine();
@@ -531,22 +544,42 @@ static const char *GenerateTextImpl(const Parser &parser, const Table *table,
 bool GenerateTextFromTable(const Parser &parser, const void *table,
                              const std::string &table_name,
                              std::string *_text) {
-  return GenTextFromTable(parser, table, table_name, _text) != nullptr;
+  return GenTextFromTable(parser, table, table_name, _text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             , false
+#endif
+  ) != nullptr;
 }
 
 // Generate a text representation of a flatbuffer in JSON format.
 const char *GenTextFromTable(const Parser &parser, const void *table,
-                             const std::string &table_name, std::string *_text) {
+                             const std::string &table_name, std::string *_text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             , bool exporting
+#endif
+) {
   auto struct_def = parser.LookupStruct(table_name);
   if (struct_def == nullptr) { return "unknown struct"; }
   auto root = static_cast<const Table *>(table);
-  return GenerateTextImpl(parser, root, *struct_def, _text);
+  return GenerateTextImpl(parser, root, *struct_def, _text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             , exporting
+#endif
+  );
 }
 
 const char* GenTextFromVector(const Parser& parser, const void* data,
-  const flatbuffers::Type& type, std::string* _text) {
+  const flatbuffers::Type& type, std::string* _text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             ,bool exporting
+#endif
+) {
 
-  JsonPrinter printer(parser, *_text);
+  JsonPrinter printer(parser, *_text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             , exporting
+#endif
+);
   return printer.PrintOffset(data, type, 0, 0, -1);
 }
 
@@ -562,7 +595,11 @@ const char *GenText(const Parser &parser, const void *flatbuffer,
   FLATBUFFERS_ASSERT(parser.root_struct_def_);  // call SetRootType()
   auto root = parser.opts.size_prefixed ? GetSizePrefixedRoot<Table>(flatbuffer)
                                         : GetRoot<Table>(flatbuffer);
-  return GenerateTextImpl(parser, root, *parser.root_struct_def_, _text);
+  return GenerateTextImpl(parser, root, *parser.root_struct_def_, _text
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+                             , false
+#endif
+  );
 }
 
 static std::string TextFileName(const std::string &path,
