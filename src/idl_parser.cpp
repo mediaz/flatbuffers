@@ -2650,7 +2650,15 @@ CheckedError Parser::ParseEnum(const bool is_union, EnumDef **dest,
         return Error("bit flag out of range of underlying integral type");
       enum_def->ChangeEnumValue(ev, 1ULL << u);
     }
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+    // We need NONE for bit flag type enums
+    auto ev = evb.CreateEnumerator("NONE", 0);
+    ECHECK(evb.AcceptEnumerator());
+
+#endif
   }
+
+
 
   enum_def->SortByValue();  // Must be sorted to use MinValue/MaxValue.
 
