@@ -4767,9 +4767,12 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
 
       uint8_t data[8] = {};
 
-      IsUnsigned(ty.enum_def->underlying_type.base_type) ?
-        *(uint64_t*)data = enum_val->GetAsUInt64() :
-        *(int64_t*)data = enum_val->GetAsInt64();
+      if (enum_val)
+        IsUnsigned(ty.enum_def->underlying_type.base_type) ?
+          *(uint64_t*)data = enum_val->GetAsUInt64() :
+          *(int64_t*)data = enum_val->GetAsInt64();
+      else
+        ECHECK(atot(value.c_str(), *this, data));
 
       builder_.ForceVectorAlignment(fbb.GetSize(), sizeof(uint8_t), 1);
       auto off = builder_.CreateVector(data, SizeOf(ty.enum_def->underlying_type.base_type));
