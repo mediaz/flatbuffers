@@ -1538,7 +1538,11 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
             ECHECK(SkipAnyJsonValue());
           }
         } else {
-          if (IsIdent("null") && !IsScalar(field->value.type.base_type)) {
+          if (IsIdent("null") && !IsScalar(field->value.type.base_type)
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+            || (opts.json_skip_transient && field->attributes.Lookup("transient"))
+#endif
+            ) {
             ECHECK(Next());  // Ignore this field.
           } else {
             Value val = field->value;
@@ -3864,6 +3868,7 @@ CheckedError Parser::DoParseJson() {
     }
     uoffset_t toff;
     ECHECK(ParseTable(*root_struct_def_, nullptr, &toff));
+    
     if (opts.size_prefixed) {
       builder_.FinishSizePrefixed(
           Offset<Table>(toff),

@@ -760,6 +760,10 @@ struct IDLOptions {
   // make the flatbuffer more compact.
   bool set_empty_vectors_to_null;
 
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
+  bool json_skip_transient; // Skips transient fields when parsing JSON.
+#endif
+
   IDLOptions()
       : gen_jvmstatic(false),
         use_flexbuffers(false),
@@ -828,7 +832,12 @@ struct IDLOptions {
         rust_module_root_file(false),
         lang_to_generate(0),
         set_empty_strings_to_null(true),
-        set_empty_vectors_to_null(true) {}
+        set_empty_vectors_to_null(true)
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
+        , json_skip_transient(true)
+#endif
+
+  {}
 };
 
 // This encapsulates where the parser is in the current source file.
