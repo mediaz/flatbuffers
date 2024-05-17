@@ -1513,7 +1513,11 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
 }
 
   CheckedError Parser::ParseTable(const StructDef &struct_def, std::string *value,
-                                uoffset_t *ovalue, bool fill) {
+                                uoffset_t *ovalue
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+    , bool fill /* = true */
+#endif
+  ) {
   ParseDepthGuard depth_guard(this);
   ECHECK(depth_guard.Check());
 
@@ -1538,13 +1542,15 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
             ECHECK(SkipAnyJsonValue());
           }
         } else {
-          if (IsIdent("null") && !IsScalar(field->value.type.base_type)
-#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
-            || (opts.json_skip_transient && field->attributes.Lookup("transient"))
-#endif
-            ) {
+          if (IsIdent("null") && !IsScalar(field->value.type.base_type)) {
             ECHECK(Next());  // Ignore this field.
           } else {
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+            flatbuffers::Optional<std::string> should_replace = std::nullopt;
+            if (opts.json_skip_transient && field->attributes.Lookup("transient")) {
+              return SkipAnyJsonValue();
+            }
+#endif
             Value val = field->value;
             if (field->flexbuffer) {
               flexbuffers::Builder builder(1024,
@@ -1594,7 +1600,7 @@ CheckedError Parser::ParseTableDelimiters(size_t &fieldn,
        field_it != struct_def.fields.vec.end(); ++field_it) {
     auto required_field = *field_it;
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
-    if (!fill && !required_field->IsRequired()) { continue; }
+    if (!struct_def.fixed && !required_field->IsRequired()) { continue; }
 #else
     if (!required_field->IsRequired()) { continue; }
 #endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on

@@ -1096,7 +1096,11 @@ class Parser : public ParserState {
                                                  const StructDef *struct_def,
                                                  F body);
   FLATBUFFERS_CHECKED_ERROR ParseTable(const StructDef &struct_def,
-                                       std::string *value, uoffset_t *ovalue, bool fill = false);
+                                       std::string *value, uoffset_t *ovalue
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+    , bool fill = true
+#endif
+  );
   void SerializeStruct(const StructDef &struct_def, const Value &val);
   void SerializeStruct(FlatBufferBuilder &builder, const StructDef &struct_def,
                        const Value &val);
