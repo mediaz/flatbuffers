@@ -1234,10 +1234,13 @@ public:
   bool CompleteMissingField(FieldDef *absent_field, const StructDef &struct_def, size_t& fieldn_outer, int32_t lastFieldCount);
   FLATBUFFERS_CHECKED_ERROR ParseDynamic(Value &val, FieldDef *field, size_t fieldn, const StructDef *struct_def_inner, const char *typeName);
 
-  bool nosIsId(const StructDef *def) { return (def && def->attributes.Lookup("nos_id"));}
-  bool nosIsId(const Type &type) { return (type.base_type == BASE_TYPE_STRUCT && nosIsId(type.struct_def)); }
 #endif // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format on
 };
+
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
+inline bool NosIsId(const StructDef *def) { return (def && def->attributes.Lookup("nos_id"));}
+inline bool NosIsId(const Type &type) { return (type.base_type == BASE_TYPE_STRUCT && NosIsId(type.struct_def)); }
+#endif // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format on
 
 // Utility functions for multiple generators:
 

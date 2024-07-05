@@ -414,7 +414,7 @@ struct JsonPrinter {
   const char *GenStruct(const StructDef &struct_def, const Table *table,
                         int indent) {
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
-    if (nosParser->nosIsId(&struct_def))
+    if (NosIsId(&struct_def))
     {
       uint8_t *data = (uint8_t *)table;
       uuids::uuid id(data, data + 16);

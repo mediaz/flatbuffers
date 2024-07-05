@@ -308,6 +308,12 @@ class JsonSchemaGenerator : public BaseGenerator {
          s != parser_.structs_.vec.cend(); ++s) {
       const auto &structure = *s;
       code_ += Indent(2) + "\"" + GenFullName(structure) + "\" : {" + NewLine();
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+      if (NosIsId(structure)) {
+        code_ += Indent(3) + GenType("string") + "," + NewLine();  // ID is a string
+      }
+      else {
+#endif
       code_ += Indent(3) + GenType("object") + "," + NewLine();
       const auto &comment_lines = structure->doc_comment;
       auto comment = PrepareDescription(comment_lines);
@@ -393,6 +399,7 @@ class JsonSchemaGenerator : public BaseGenerator {
         code_ += required_string + NewLine();
       }
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+      }
       }
 #endif
       code_ += Indent(3) + "\"additionalProperties\" : false" + NewLine();

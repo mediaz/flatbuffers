@@ -1405,7 +1405,7 @@ CheckedError Parser::ParseAnyValue(Value &val, FieldDef *field,
     }
     case BASE_TYPE_STRUCT:
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
-      if (nosIsId(val.type)) 
+      if (NosIsId(val.type)) 
       {
         // parse string id and serialize uuid struct
         val.constant.assign(val.type.struct_def->bytesize, 0); // 16
