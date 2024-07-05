@@ -4696,6 +4696,23 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
   {
   case BASE_TYPE_STRUCT:
   {
+    if (NosIsId(val.type)) 
+    {
+      // parse string id and serialize uuid struct
+      val.constant.assign(val.type.struct_def->bytesize, 0); // 16
+      auto readId = uuids::uuid::from_string(attribute_);
+      EXPECT(kTokenStringConstant);
+      if (readId.has_value() && readId.value().as_bytes().size_bytes() == val.type.struct_def->bytesize)
+      {
+        // note that this is a shortcut, usually flatbuffers would first call SerializeStruct(*val.type.struct_def, val);
+        // and roll back the builder (clear offset, end struct..) and cache the value in val.constant and then serialize it 
+        // after the parent table is finished; since we know nothing will recur, we are directly caching it to val.constant
+        // check out what it does at the end of Parser::ParseTable() - the fixed size path
+        val.constant.assign((char *)readId.value().as_bytes().data(), val.type.struct_def->bytesize);
+      }
+      break;
+    }
+
     if (ty.struct_def->fixed)
     {
       ECHECK(ParseTable(*ty.struct_def, &val.constant, nullptr, true));
