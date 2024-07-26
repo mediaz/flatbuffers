@@ -2012,11 +2012,24 @@ CheckedError Parser::ParseEnumFromString(const Type &type,
         return Error("enum values need to be qualified by an enum type");
       auto enum_def_str = word.substr(0, dot);
       const auto enum_def = LookupEnum(enum_def_str);
-      if (!enum_def) return Error("unknown enum: " + enum_def_str);
+      if (!enum_def)
+        return Error("unknown enum: " + enum_def_str);
       auto enum_val_str = word.substr(dot + 1);
       ev = enum_def->Lookup(enum_val_str);
     }
-    if (!ev) return Error("unknown enum value: " + word);
+    if (!ev)
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
+    {
+      // Set first enum value as default
+      // TODO: Collect & notify changes in the parsed data.
+      if (type.enum_def->Vals().size() > 0)
+        ev = type.enum_def->Vals().front();
+      else
+        return Error("enum has no values: " + word);
+    }
+#else
+      return Error("unknown enum value: " + word);
+#endif
     u64 |= ev->GetAsUInt64();
   }
   *result = IsUnsigned(base_type) ? NumToString(u64)
