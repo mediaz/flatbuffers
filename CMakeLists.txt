@@ -159,7 +159,7 @@ set(FlatBuffers_Library_SRCS
 )
 
 # Begin NOS_CUSTOM_FLATBUFFERS
-if (${NOS_CUSTOM_FLATBUFFERS})
+if (${NOS_CUSTOM_FLATBUFFERS_1})
   list(APPEND FlatBuffers_Library_SRCS
     src/idl_gen_json_schema.cpp
   )
@@ -407,8 +407,6 @@ else()
       $<$<CXX_COMPILER_ID:GNU>:
         $<$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,4.4>:
           -Wunused-result
-          -Wunused-parameter
-          -Werror=unused-parameter
           -Wmissing-declarations
         >
         $<$<VERSION_GREATER:$<CXX_COMPILER_VERSION>,4.7>:
@@ -445,8 +443,8 @@ if(FLATBUFFERS_BUILD_FLATLIB)
   add_library(flatbuffers STATIC ${FlatBuffers_Library_SRCS})
 
   # Begin NOS_CUSTOM_FLATBUFFERS
-  if (${NOS_CUSTOM_FLATBUFFERS})
-    target_compile_definitions(flatbuffers PUBLIC NOS_CUSTOM_FLATBUFFERS=1)
+  if (${NOS_CUSTOM_FLATBUFFERS_1})
+    target_compile_definitions(flatbuffers PUBLIC NOS_CUSTOM_FLATBUFFERS)
   endif()
   # End NOS_CUSTOM_FLATBUFFERS
 
