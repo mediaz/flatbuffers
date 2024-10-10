@@ -167,6 +167,10 @@ struct JsonPrinter {
       auto ptr = is_struct ? reinterpret_cast<const void *>(
                                  c.Data() + type.struct_def->bytesize * i)
                            : c[i];
+      if (type.base_type == BASE_TYPE_UNION && type.enum_def &&
+          !type.enum_def->is_union) {
+        ptr = c.Data() + (flatbuffers::SizeOf(type.enum_def->underlying_type.base_type) * i);
+      }
       auto err = PrintOffset(ptr, type, elem_indent, prev_val,
                              static_cast<soffset_t>(i));
       if (err) return err;
@@ -202,7 +206,7 @@ struct JsonPrinter {
                           const uint8_t *prev_val, soffset_t vector_index) {
     switch (type.base_type) {
       case BASE_TYPE_UNION: {
-      if (prev_val) { // This is a union type
+      if (prev_val && type.enum_def->is_union) { // This is a union type
         auto union_type_byte = *prev_val;  // Always a uint8_t.
         if (vector_index >= 0) {
           auto type_vec = reinterpret_cast<const Vector<uint8_t> *>(

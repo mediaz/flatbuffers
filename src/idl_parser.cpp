@@ -1315,7 +1315,7 @@ CheckedError Parser::ParseAnyValue(Value &val, FieldDef *field,
   switch (val.type.base_type) {
     case BASE_TYPE_UNION: {
       FLATBUFFERS_ASSERT(field);
-      std::string constant;
+      std::string constant = val.constant;
       Vector<uint8_t> *vector_of_union_types = nullptr;
       // Find corresponding type field we may have already parsed.
       for (auto elem = field_stack_.rbegin() + count;
@@ -1396,7 +1396,7 @@ CheckedError Parser::ParseAnyValue(Value &val, FieldDef *field,
           builder_.ClearOffsets();
           val.constant = NumToString(builder_.GetSize());
         }
-      } else if (IsString(enum_val->union_type)) {
+      } else if (IsString(enum_val->union_type) || IsInteger(val.type.enum_def->underlying_type.base_type)) {
         ECHECK(ParseString(val, field->shared));
       } else {
         FLATBUFFERS_ASSERT(false);
