@@ -1010,6 +1010,10 @@ class Parser : public ParserState {
 
   bool ParseJson(const char *json, const char *json_filename = nullptr);
 
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+  FLATBUFFERS_CHECKED_ERROR NOSParseJson(const char* json, const Type &type, DetachedBuffer *out);
+#endif
+
   // Returns the number of characters were consumed when parsing a JSON string.
   std::ptrdiff_t BytesConsumed() const;
 

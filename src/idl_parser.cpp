@@ -1425,7 +1425,11 @@ CheckedError Parser::ParseAnyValue(Value &val, FieldDef *field,
         ECHECK(ParseTable(*val.type.struct_def, &val.constant, nullptr));
       break;
     case BASE_TYPE_STRING: {
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+      ECHECK(ParseString(val, field ? field->shared : false));
+#else
       ECHECK(ParseString(val, field->shared));
+#endif
       break;
     }
     case BASE_TYPE_VECTOR64:
@@ -1768,7 +1772,15 @@ CheckedError Parser::ParseVector(const Type &vector_type, uoffset_t *ovalue,
   const size_t alignment = InlineAlignment(type);
   const size_t len = count * InlineSize(type) / InlineAlignment(type);
   const size_t elemsize = InlineAlignment(type);
-  const auto force_align = field->attributes.Lookup("force_align");
+  const auto force_align =
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
+      field ?
+#endif
+    field->attributes.Lookup("force_align")
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
+    : nullptr
+#endif
+    ;
   if (force_align) {
     size_t align;
     ECHECK(ParseAlignAttribute(force_align->constant, 1, &align));
@@ -3560,6 +3572,58 @@ std::ptrdiff_t Parser::BytesConsumed() const {
   return std::distance(source_, prev_cursor_);
 }
 
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+// Works only for 32-bit offsets.
+FLATBUFFERS_CHECKED_ERROR Parser::NOSParseJson(const char* json, const Type& type, DetachedBuffer* outBuf)
+{
+  ECHECK(StartParseFile(json, nullptr));
+  Value field_value{};
+  field_value.offset = 0;
+  field_value.type = type;
+  ECHECK(ParseAnyValue(field_value, nullptr, 0, nullptr, 0));
+
+  uoffset_t outOffset = 0;
+
+  switch (field_value.type.base_type) {
+#  define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...)            \
+    case BASE_TYPE_##ENUM: {                                   \
+      CTYPE val;                                               \
+      ECHECK(atot(field_value.constant.c_str(), *this, &val)); \
+      outOffset = builder_.PushElement(val);                   \
+    } break;
+
+    FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+#  undef FLATBUFFERS_TD
+#  define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...)                          \
+    case BASE_TYPE_##ENUM:                                                   \
+      if (IsStruct(field_value.type)) {                                      \
+        builder_.Align(field_value.type.struct_def->minalign);               \
+        builder_.PushBytes(                                                  \
+            reinterpret_cast<const uint8_t *>(field_value.constant.c_str()), \
+            field_value.type.struct_def->bytesize);                          \
+        outOffset = builder_.GetSize();                                      \
+      } else {                                                               \
+        /* Special case for fields that use 64-bit addressing */             \
+        CTYPE val;                                                           \
+        ECHECK(atot(field_value.constant.c_str(), *this, &val));             \
+        outOffset = val.o;                                                   \
+      }                                                                      \
+      break;
+    FLATBUFFERS_GEN_TYPES_POINTER(FLATBUFFERS_TD)
+#  undef FLATBUFFERS_TD
+    case BASE_TYPE_ARRAY:
+      builder_.PushBytes(
+          reinterpret_cast<const uint8_t *>(field_value.constant.c_str()),
+          InlineSize(field_value.type));
+      break;
+  }
+
+  builder_.Finish(Offset<void>(outOffset));
+  *outBuf = builder_.Release();
+  return NoError();
+}
+#endif
+
 CheckedError Parser::StartParseFile(const char *source,
                                     const char *source_filename) {
   file_being_parsed_ = source_filename ? source_filename : "";
@@ -4629,7 +4693,7 @@ bool Parser::LookupDynamicType(std::string const & typeName, Type & type)
 
   if (auto enum_def = LookupTableByName(enums_, typeName, *current_namespace_, 0))
   {
-    type = Type(BASE_TYPE_UNION, 0, enum_def);
+    type = Type(enum_def->underlying_type.base_type, 0, enum_def);
     return true;
   }
 
