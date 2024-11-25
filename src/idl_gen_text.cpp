@@ -395,9 +395,15 @@ struct JsonPrinter {
       {
         auto data = table->GetPointer<const Vector<uint8_t> *>(fd.value.offset);
         auto str = (const char*)data->Data();
-        auto size = std::min(strlen(str), std::max<size_t>(0, data->size() - 1));
-        text += str;
-        return nullptr;
+        if (strnlen(str, data->size()) == data->size() - 1)
+        {
+          text += str;
+          return nullptr;
+        }
+        else
+        {
+          return "unknown dynamic type with invalid json";
+        }
       }
     }
 #endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format on
