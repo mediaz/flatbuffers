@@ -4753,10 +4753,7 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
     }
     else
     {
-
-      data = attribute_;
-      if(token_ == kTokenStringConstant)
-        data = "\"" + data + "\"";
+      EscapeString(attribute_.c_str(), attribute_.size(), &data, opts.allow_non_utf8, opts.natural_utf8);
       ECHECK(SkipAnyJsonValue());
     }
 
