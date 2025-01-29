@@ -2215,6 +2215,79 @@ class CppGenerator : public BaseGenerator {
     GenOperatorNewDelete(struct_def);
     GenDefaultConstructor(struct_def);
     GenCopyMoveCtorAndAssigOpDecls(struct_def);
+
+    
+
+    
+    // Generate the AccessMember function
+    code_ += "void* AccessMember(const std::string &memberName) {";
+    for (auto it = struct_def.fields.vec.begin();
+         it != struct_def.fields.vec.end(); ++it) {
+      const auto &field = **it;
+      std::string fieldName = Name(field); // Possibly modified member name
+      // Handle nested tables recursively
+      switch (field.value.type.base_type) {
+      case BASE_TYPE_STRUCT:
+        {
+          std::string subFuncAccessor;
+          // Decide if the field is ptr or not
+          {
+            auto &type = field.value.type;
+            auto type_name = WrapInNameSpace(*type.struct_def);
+            if (IsStruct(type)) {
+              auto native_type =
+                  type.struct_def->attributes.Lookup("native_type");
+              if (native_type) { type_name = native_type->constant; }
+              if (field.native_inline) {
+                subFuncAccessor = ".";
+              } else {
+                subFuncAccessor = "->";
+              }
+            } else {
+              const auto nn =
+                  WrapNativeNameInNameSpace(*type.struct_def, opts_);
+              subFuncAccessor = (field.native_inline)
+                         ? "." : "->";
+            }
+          }
+          code_ += "if (memberName.find(\"" + field.name + ".\") == 0) {";
+          code_ += "  std::string subMember = memberName.substr(" +
+                   std::to_string(fieldName.length() + 1) + ");";
+          code_ += "  return " + fieldName +
+                   subFuncAccessor + "AccessMember(subMember);";
+          code_ += "}";
+        }
+        break;
+      case BASE_TYPE_VECTOR:
+        {
+          code_ += "if (memberName == \"" + field.name + "\") {";
+          code_ += "  return static_cast<void*>(reinterpret_cast<void*>(&" +
+                   fieldName + "));";
+          code_ += "}";
+      }
+        break;
+      case BASE_TYPE_BOOL:
+      case BASE_TYPE_CHAR:
+      case BASE_TYPE_UCHAR:
+      case BASE_TYPE_SHORT:
+      case BASE_TYPE_USHORT:
+      case BASE_TYPE_INT:
+      case BASE_TYPE_UINT:
+      case BASE_TYPE_LONG:
+      case BASE_TYPE_ULONG:
+      case BASE_TYPE_FLOAT:
+      case BASE_TYPE_DOUBLE:
+      case BASE_TYPE_STRING: {
+        code_ += "if (memberName == \"" + field.name + "\") {";
+        code_ += "  return static_cast<void*>(reinterpret_cast<void*>(&" +
+                 fieldName + "));";
+        code_ += "}";
+      } break;
+      }
+    }
+    code_ += "return nullptr;";  // Return nullptr if the member is not found
+    code_ += "}";
+
     code_ += "};";
     code_ += "";
   }
@@ -2869,6 +2942,7 @@ class CppGenerator : public BaseGenerator {
       code_ += "  " + TableUnPackToSignature(struct_def, true, opts_) + ";";
       code_ += "  " + TablePackSignature(struct_def, true, opts_) + ";";
     }
+
 
     code_ += "};";  // End of table.
     code_ += "";
@@ -4020,6 +4094,52 @@ class CppGenerator : public BaseGenerator {
     GenOperatorNewDelete(struct_def);
 
     if (opts_.cpp_static_reflection) { GenIndexBasedFieldGetter(struct_def); }
+
+    
+    
+    // Generate the AccessMember function
+    code_ += "void* AccessMember(const std::string &memberName) {";
+    for (auto it = struct_def.fields.vec.begin();
+         it != struct_def.fields.vec.end(); ++it) {
+      const auto &field = **it;
+      // Handle nested tables recursively
+      switch (field.value.type.base_type) {
+        case BASE_TYPE_STRUCT:
+        {
+          code_ += "if (memberName.find(\"" + field.name + ".\") == 0) {";
+          code_ += "  std::string subMember = memberName.substr(" +
+                   std::to_string(field.name.length() + 1) + ");";
+          code_ += "  return " + field.name + "_.AccessMember(subMember);";
+          code_ += "}";
+        }
+        break;
+        case BASE_TYPE_VECTOR: {
+          code_ += "if (memberName == \"" + field.name + "\") {";
+          code_ += "  return static_cast<void*>(reinterpret_cast<void*>(&" +
+                   field.name + "));";
+          code_ += "}";
+        } break;
+        case BASE_TYPE_BOOL:
+        case BASE_TYPE_CHAR:
+        case BASE_TYPE_UCHAR:
+        case BASE_TYPE_SHORT:
+        case BASE_TYPE_USHORT:
+        case BASE_TYPE_INT:
+        case BASE_TYPE_UINT:
+        case BASE_TYPE_LONG:
+        case BASE_TYPE_ULONG:
+        case BASE_TYPE_FLOAT:
+        case BASE_TYPE_DOUBLE:
+        case BASE_TYPE_STRING: {
+          code_ += "if (memberName == \"" + field.name + "\") {";
+          code_ += "  return static_cast<void*>(reinterpret_cast<void*>(&" +
+                   field.name + "_));";
+          code_ += "}";
+        }
+      }
+    }
+    code_ += "return nullptr;";  // Return nullptr if the member is not found
+    code_ += "}";
 
     code_ += "};";
 
