@@ -119,6 +119,10 @@ template<typename T>
 static CheckedError atot(const char *s, Parser &parser, T *val) {
   auto done = atot_scalar(s, val, bool_constant<is_floating_point<T>::value>());
   if (done) return NoError();
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
+  parser.error_ += (parser.error_.empty() ? "" : "\n") + std::string("Omiting 0 on scalar parse failure, value was ") + s;
+  return NoError();
+#endif // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
   if (0 == *val)
     return parser.Error("invalid number: \"" + std::string(s) + "\"");
   else
@@ -4817,7 +4821,9 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
     nested_parser.enums_.vec.clear();
 
     if (!ok)
-      ECHECK(Error(nested_parser.error_));
+      ECHECK(Error(nested_parser.error_))
+    else if (!nested_parser.error_.empty())
+      Message(nested_parser.error_);
 
     // Force alignment for nested flatbuffer
     builder_.ForceVectorAlignment(nested_parser.builder_.GetSize(), sizeof(uint8_t), nested_parser.builder_.GetBufferMinAlignment());
