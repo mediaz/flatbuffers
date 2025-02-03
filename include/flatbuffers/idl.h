@@ -22,6 +22,7 @@
 #include <map>
 #include <memory>
 #include <stack>
+#include <vector>
 
 #include "flatbuffers/base.h"
 #include "flatbuffers/flatbuffers.h"
@@ -679,6 +680,7 @@ struct IDLOptions {
   bool binary_schema_comments;
   bool binary_schema_builtins;
   bool binary_schema_gen_embed;
+  bool binary_schema_absolute_paths;
   std::string go_import;
   std::string go_namespace;
   std::string go_module_name;
@@ -707,8 +709,27 @@ struct IDLOptions {
   bool no_leak_private_annotations;
   bool require_json_eof;
   bool keep_proto_id;
+
+  /********************************** Python **********************************/
   bool python_no_type_prefix_suffix;
   bool python_typing;
+
+  // The target Python version. Can be one of the following:
+  // -  "0"
+  // -  "2"
+  // -  "3"
+  // -  "2.<minor>"
+  // -  "3.<minor>"
+  // -  "2.<minor>.<micro>"
+  // -  "3.<minor>.<micro>"
+  //
+  // https://docs.python.org/3/faq/general.html#how-does-the-python-version-numbering-scheme-work
+  std::string python_version;
+
+  // Whether to generate numpy helpers.
+  bool python_gen_numpy;
+
+  bool ts_omit_entrypoint;
   ProtoIdGapAction proto_id_gap_action;
 
   // Possible options for the more general generator below.
@@ -760,6 +781,15 @@ struct IDLOptions {
   // make the flatbuffer more compact.
   bool set_empty_vectors_to_null;
 
+  /*********************************** gRPC ***********************************/
+  std::string grpc_filename_suffix;
+  bool grpc_use_system_headers;
+  std::string grpc_search_path;
+  std::vector<std::string> grpc_additional_headers;
+
+  /******************************* Python gRPC ********************************/
+  bool grpc_python_typed_handlers;
+
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
   bool json_skip_transient; // Skips transient fields when parsing JSON.
 #endif
@@ -802,6 +832,7 @@ struct IDLOptions {
         binary_schema_comments(false),
         binary_schema_builtins(false),
         binary_schema_gen_embed(false),
+        binary_schema_absolute_paths(false),
         protobuf_ascii_alike(false),
         size_prefixed(false),
         force_defaults(false),
@@ -825,6 +856,8 @@ struct IDLOptions {
         keep_proto_id(false),
         python_no_type_prefix_suffix(false),
         python_typing(false),
+        python_gen_numpy(true),
+        ts_omit_entrypoint(false),
         proto_id_gap_action(ProtoIdGapAction::WARNING),
         mini_reflect(IDLOptions::kNone),
         require_explicit_ids(false),
@@ -832,7 +865,10 @@ struct IDLOptions {
         rust_module_root_file(false),
         lang_to_generate(0),
         set_empty_strings_to_null(true),
-        set_empty_vectors_to_null(true)
+        set_empty_vectors_to_null(true),
+        grpc_filename_suffix(".fb"),
+        grpc_use_system_headers(true),
+        grpc_python_typed_handlers(false)
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS // clang-format off
         , json_skip_transient(true)
 #endif
