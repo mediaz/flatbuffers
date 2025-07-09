@@ -340,23 +340,24 @@ class JsonSchemaGenerator : public BaseGenerator {
         }
         std::string typeLine = Indent(4) + "\"" + property->name + "\"";
         typeLine += " : {" + NewLine() + Indent(8);
-        if (property->value.constant == "0") {
-          typeLine += GenType(property->value.type);
-        } else {
+        typeLine += GenType(property->value.type);
+
+        if (!(property->value.constant == "0" ||
+            property->value.constant == "0.0")) {
+          typeLine += ",\"default\": ";
           if (property->value.type.enum_def) {
             auto const *value = property->value.type.enum_def->FindByValue(
                 property->value.constant);
-            assert(value);  
+            assert(value);
             // This shouldn't happen but if happens, avoid crash
-            if (!value)
-              value = property->value.type.enum_def->MinValue();
+            if (!value) value = property->value.type.enum_def->MinValue();
 
-            typeLine +=
-                "\"type\": \"string\", \"enum\": \"" + value->name +
-                "\"";
-          } else
-            typeLine += GenType(property->value.type.base_type) +
-                        ", \"default\": " + property->value.constant;
+            typeLine += "\"" + value->name + "\"";
+            
+          } else if (property->value.type.base_type == BASE_TYPE_BOOL)
+            typeLine += "true";
+          else
+            typeLine += property->value.constant;
         }
         typeLine += arrayInfo;
         typeLine += deprecated_info;
