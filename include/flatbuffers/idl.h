@@ -1308,14 +1308,25 @@ extern const char *GenTextFromTable(const Parser &parser, const void *table,
                                     std::string *text
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
   , bool exporting = false
-#endif
+#endif                       // clang-format on
 );
-extern const char* GenTextFromVector(const Parser& parser, const void* vector,
-                                     const Type& type, std::string* _text
+extern const char *GenTextFromVector(const Parser &parser, const void *vector,
+                                     const Type &type, std::string *_text
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
   , bool exporting = false
-#endif
+#endif  // clang-format on
 );
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+extern const char *GenTextFromScalar(const Parser &parser, const void *scalar,
+                                     const flatbuffers::Type &type,
+                                     std::string *_text, bool exporting = false);
+extern const char *GenTextFromAnyBuffer(const Parser& parser,
+                                        const void *data,
+                                        const flatbuffers::Type &type,
+                                        std::string *_text,
+                                        bool exporting = false);
+#endif
+
 extern const char *GenText(const Parser &parser, const void *flatbuffer,
                            std::string *text);
 extern const char *GenTextFile(const Parser &parser, const std::string &path,
