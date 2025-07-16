@@ -596,6 +596,51 @@ const char* GenTextFromVector(const Parser& parser, const void* data,
   return printer.PrintOffset(data, type, 0, 0, -1);
 }
 
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format on
+const char *GenTextFromScalar(const Parser &parser, const void *scalar,
+                              const flatbuffers::Type &type, std::string *_text,
+                              bool exporting) {
+  JsonPrinter printer(parser, *_text, exporting);
+  switch (type.base_type) {
+#  undef FLATBUFFERS_TD
+#  define FLATBUFFERS_TD(ENUM, IDLTYPE, CTYPE, ...)              \
+    case BASE_TYPE_##ENUM:                                       \
+      printer.PrintScalar<CTYPE>(*((CTYPE *)(scalar)), type, 0); \
+      return nullptr;
+    FLATBUFFERS_GEN_TYPES_SCALAR(FLATBUFFERS_TD)
+#  undef FLATBUFFERS_TD
+    default: FLATBUFFERS_ASSERT(0); return "unknown type";
+  }
+  return nullptr;
+}
+
+const char *GenTextFromAnyBuffer(const Parser &parser, const void *data,
+                                 const flatbuffers::Type &type,
+                                 std::string *_text, bool exporting) {
+  switch (type.base_type) {
+    case flatbuffers::BASE_TYPE_VECTOR:
+      return flatbuffers::GenTextFromVector(
+          parser, (flatbuffers::Vector<uint8_t> *)(data), type, _text);
+    case flatbuffers::BASE_TYPE_STRUCT:
+      return flatbuffers::GenerateTextImpl(
+          parser,
+          type.struct_def->fixed
+              ? static_cast<const flatbuffers::Table*>(data)
+              : flatbuffers::GetRoot<flatbuffers::Table>(data),
+          *type.struct_def, _text, exporting);
+    case flatbuffers::BASE_TYPE_STRING: {
+      auto str = reinterpret_cast<char const *>(data);
+      auto sz = strlen(str);
+      flatbuffers::EscapeString(str, sz, _text, parser.opts.allow_non_utf8,
+                                parser.opts.natural_utf8);
+      return nullptr;
+    }
+    default: return flatbuffers::GenTextFromScalar(parser, data, type, _text, exporting);
+  }
+}
+
+#endif
+
 // Deprecated: please use `GenText`
 const char *GenerateText(const Parser &parser, const void *flatbuffer,
                          std::string *_text) {
