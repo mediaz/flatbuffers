@@ -341,7 +341,7 @@ class JsonSchemaGenerator : public BaseGenerator {
         std::string typeLine = Indent(4) + "\"" + property->name + "\"";
         typeLine += " : {" + NewLine() + Indent(8);
         typeLine += GenType(property->value.type);
-
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
         if (!(property->value.constant == "0" ||
             property->value.constant == "0.0")) {
           typeLine += ",\"default\": ";
@@ -359,6 +359,7 @@ class JsonSchemaGenerator : public BaseGenerator {
           else
             typeLine += property->value.constant;
         }
+#endif
         typeLine += arrayInfo;
         typeLine += deprecated_info;
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
