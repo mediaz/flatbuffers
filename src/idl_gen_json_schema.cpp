@@ -241,6 +241,22 @@ class JsonSchemaGenerator : public BaseGenerator {
     return std::string(num_spaces, ' ');
   }
 
+  std::string WriteAttributes(SymbolTable<Value>& attributes) {
+    std::string attribs;
+    if (attributes.dict.size()) {
+      attribs += "\"attributes\": {";
+      for (auto it = attributes.dict.cbegin();
+           it != attributes.dict.cend();) {
+        auto const &[key, value] = *it;
+        attribs += "\"" + key + "\" : \"" + value->constant + "\"";
+        it++;
+        if (it != attributes.dict.cend()) attribs += ",";
+      }
+      attribs += "}" + NewLine();
+    }
+    return attribs;
+  }
+
   std::string PrepareDescription(
       const std::vector<std::string> &comment_lines) {
     std::string comment;
@@ -303,17 +319,8 @@ class JsonSchemaGenerator : public BaseGenerator {
       enumdef.append("]");
       code_ += enumdef + NewLine();
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
-      if ((*e)->attributes.dict.size()) {
-        code_ += Indent(3) + ", \"attributes\": {";
-        for (auto it = (*e)->attributes.dict.cbegin();
-             it != (*e)->attributes.dict.cend();) {
-          auto const &[key, value] = *it;
-          code_ += "\"" + key + "\" : \"" + value->constant + "\"";
-          it++;
-          if (it != (*e)->attributes.dict.cend()) code_ += ",";
-        }
-        code_ += "}" + NewLine();
-      }
+      auto attribs = WriteAttributes((*e)->attributes);
+      if (!attribs.empty()) code_ += Indent(3) + ", " + attribs + NewLine();
 #endif
       code_ += Indent(2) + "}," + NewLine();  // close type
     }
@@ -335,17 +342,8 @@ class JsonSchemaGenerator : public BaseGenerator {
       }
 
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
-      if (structure->attributes.dict.size()) {
-        code_ += Indent(3) + "\"attributes\": {";
-        for (auto it = structure->attributes.dict.cbegin();
-             it != structure->attributes.dict.cend();) {
-          auto const &[key, value] = *it;
-          code_ += "\"" + key + "\" : \"" + value->constant + "\"";
-          it++;
-          if (it != structure->attributes.dict.cend()) code_ += ",";
-        }
-        code_ += "}," + NewLine();
-      }
+      auto attribs = WriteAttributes(structure->attributes);
+      if (!attribs.empty()) code_ += Indent(3) + attribs + "," + NewLine();
 #endif
 
       code_ += Indent(3) + "\"properties\" : {" + NewLine();
