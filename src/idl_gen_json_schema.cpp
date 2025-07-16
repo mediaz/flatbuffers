@@ -241,6 +241,24 @@ class JsonSchemaGenerator : public BaseGenerator {
     return std::string(num_spaces, ' ');
   }
 
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+  std::string WriteAttributes(SymbolTable<Value>& attributes) {
+    std::string attribs;
+    if (attributes.dict.size()) {
+      attribs += "\"attributes\": {";
+      for (auto it = attributes.dict.cbegin();
+           it != attributes.dict.cend();) {
+        auto const &[key, value] = *it;
+        attribs += "\"" + key + "\" : \"" + value->constant + "\"";
+        it++;
+        if (it != attributes.dict.cend()) attribs += ",";
+      }
+      attribs += "}" + NewLine();
+    }
+    return attribs;
+  }
+#endif
+
   std::string PrepareDescription(
       const std::vector<std::string> &comment_lines) {
     std::string comment;
@@ -302,6 +320,10 @@ class JsonSchemaGenerator : public BaseGenerator {
       }
       enumdef.append("]");
       code_ += enumdef + NewLine();
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+      if (auto attribs = WriteAttributes((*e)->attributes); !attribs.empty())
+        code_ += Indent(3) + ", " + attribs + NewLine();
+#endif
       code_ += Indent(2) + "}," + NewLine();  // close type
     }
     for (auto s = parser_.structs_.vec.cbegin();
@@ -320,6 +342,11 @@ class JsonSchemaGenerator : public BaseGenerator {
       if (comment != "") {
         code_ += Indent(3) + "\"description\" : " + comment + "," + NewLine();
       }
+
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+      if (auto attribs =  WriteAttributes(structure->attributes); !attribs.empty())
+        code_ += Indent(3) + attribs + "," + NewLine();
+#endif
 
       code_ += Indent(3) + "\"properties\" : {" + NewLine();
 
@@ -363,18 +390,8 @@ class JsonSchemaGenerator : public BaseGenerator {
         typeLine += arrayInfo;
         typeLine += deprecated_info;
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
-        if (property->attributes.dict.size() > 0) { // Generate attributes
-          typeLine += "," + NewLine() + Indent(8) + "\"attributes\" : {";
-          for (auto it = property->attributes.dict.cbegin();
-               it != property->attributes.dict.cend();) {
-            auto const &[key, value] = *it;
-            typeLine += NewLine() + Indent(9) + "\"" + key + "\" : \"" +
-                        value->constant + "\"";
-            it++;
-            if (it != property->attributes.dict.cend()) typeLine += ",";
-          }
-          typeLine += NewLine() + Indent(8) + "}";
-        }
+        if (auto attribs = WriteAttributes(property->attributes); !attribs.empty())
+          typeLine += "," + NewLine() + Indent(8) + attribs + NewLine();
 #endif
         auto description = PrepareDescription(property->doc_comment);
         if (description != "") {
