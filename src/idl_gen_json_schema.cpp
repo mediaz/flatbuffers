@@ -302,6 +302,19 @@ class JsonSchemaGenerator : public BaseGenerator {
       }
       enumdef.append("]");
       code_ += enumdef + NewLine();
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+      if ((*e)->attributes.dict.size()) {
+        code_ += Indent(3) + ", \"attributes\": {";
+        for (auto it = (*e)->attributes.dict.cbegin();
+             it != (*e)->attributes.dict.cend();) {
+          auto const &[key, value] = *it;
+          code_ += "\"" + key + "\" : \"" + value->constant + "\"";
+          it++;
+          if (it != (*e)->attributes.dict.cend()) code_ += ",";
+        }
+        code_ += "}" + NewLine();
+      }
+#endif
       code_ += Indent(2) + "}," + NewLine();  // close type
     }
     for (auto s = parser_.structs_.vec.cbegin();
@@ -320,6 +333,20 @@ class JsonSchemaGenerator : public BaseGenerator {
       if (comment != "") {
         code_ += Indent(3) + "\"description\" : " + comment + "," + NewLine();
       }
+
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+      if (structure->attributes.dict.size()) {
+        code_ += Indent(3) + "\"attributes\": {";
+        for (auto it = structure->attributes.dict.cbegin();
+             it != structure->attributes.dict.cend();) {
+          auto const &[key, value] = *it;
+          code_ += "\"" + key + "\" : \"" + value->constant + "\"";
+          it++;
+          if (it != structure->attributes.dict.cend()) code_ += ",";
+        }
+        code_ += "}," + NewLine();
+      }
+#endif
 
       code_ += Indent(3) + "\"properties\" : {" + NewLine();
 
