@@ -635,7 +635,7 @@ const char *GenTextFromAnyBuffer(const Parser &parser, const void *data,
                                 parser.opts.natural_utf8);
       return nullptr;
     }
-    default: return flatbuffers::GenTextFromScalar(parser, data, type, _text);
+    default: return flatbuffers::GenTextFromScalar(parser, data, type, _text, exporting);
   }
 }
 
