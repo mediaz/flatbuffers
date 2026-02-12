@@ -1648,6 +1648,7 @@ class CppGenerator : public BaseGenerator {
       // Generate union Unpack() and Pack() functions.
       code_ += "inline " + UnionUnPackSignature(enum_def, false) + " {";
       code_ += "  (void)resolver;";
+      code_ += "  if (!obj) return nullptr;";
       code_ += "  switch (type) {";
       for (auto it = enum_def.Vals().begin(); it != enum_def.Vals().end();
            ++it) {
@@ -1679,6 +1680,7 @@ class CppGenerator : public BaseGenerator {
 
       code_ += "inline " + UnionPackSignature(enum_def, false) + " {";
       code_ += "  (void)_rehasher;";
+      code_ += "  if (!value) return 0;";
       code_ += "  switch (type) {";
       for (auto it = enum_def.Vals().begin(); it != enum_def.Vals().end();
            ++it) {
@@ -1713,6 +1715,7 @@ class CppGenerator : public BaseGenerator {
       code_ +=
           "inline {{ENUM_NAME}}Union::{{ENUM_NAME}}Union(const "
           "{{ENUM_NAME}}Union &u) : type(u.type), value(nullptr) {";
+      code_ += "  if (!u.value) return;";
       code_ += "  switch (type) {";
       for (const auto &ev : enum_def.Vals()) {
         if (ev->IsZero()) { continue; }
