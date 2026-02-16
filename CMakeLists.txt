@@ -635,6 +635,10 @@ if(FLATBUFFERS_INSTALL)
 
   install(DIRECTORY include/flatbuffers DESTINATION ${CMAKE_INSTALL_INCLUDEDIR})
 
+  if(NOS_CUSTOM_FLATBUFFERS)
+    install(FILES src/idl_gen_json_schema.h DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/flatbuffers)
+  endif()
+
   set(FB_CMAKE_DIR "${CMAKE_INSTALL_LIBDIR}/cmake/flatbuffers")
 
   configure_file(CMake/flatbuffers-config-version.cmake.in flatbuffers-config-version.cmake @ONLY)
