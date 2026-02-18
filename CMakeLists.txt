@@ -443,12 +443,17 @@ else()
   endif()
 endif()
 
+if(${NOS_CUSTOM_FLATBUFFERS})
+  find_package(stduuid CONFIG REQUIRED)
+endif()
+
 if(FLATBUFFERS_BUILD_FLATLIB)
   add_library(flatbuffers STATIC ${FlatBuffers_Library_SRCS})
 
   # Begin NOS_CUSTOM_FLATBUFFERS
   if (${NOS_CUSTOM_FLATBUFFERS})
     target_compile_definitions(flatbuffers PUBLIC NOS_CUSTOM_FLATBUFFERS)
+    target_link_libraries(flatbuffers PRIVATE stduuid)
   endif()
   # End NOS_CUSTOM_FLATBUFFERS
 

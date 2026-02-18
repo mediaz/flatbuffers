@@ -27,7 +27,7 @@
 #include "flatbuffers/util.h"
 
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
-#  include <../../stduuid/include/uuid.h>
+#  include <uuid.h>
 #endif  // defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
 
 namespace flatbuffers {
