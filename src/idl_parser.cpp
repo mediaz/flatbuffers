@@ -4810,6 +4810,14 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
     Parser nested_parser;
     nested_parser.root_struct_def_ = ty.struct_def;
     nested_parser.enums_ = enums_;
+    // A dynamic type can nest dynamic fields (nos.Dict type in Nodos for example).
+    // Each inner one resolves its type by name via LookupDynamicType, which reads
+    // structs_ + enums_ + MigratedTypesDictionary, so the nested parser must carry them; without
+    // structs_ the inner type fails to resolve.
+    // (ParseNestedFlatbuffer needs none of this, its types are reached by pointer from a schema
+    // compile-time known root.)
+    nested_parser.structs_ = structs_;
+    nested_parser.MigratedTypesDictionary = MigratedTypesDictionary;
     nested_parser.opts = opts;
     nested_parser.uses_flexbuffers_ = false;
     nested_parser.parse_depth_counter_ = parse_depth_counter_;
@@ -4820,6 +4828,8 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
     // the SymbolTables on destruction
     nested_parser.enums_.dict.clear();
     nested_parser.enums_.vec.clear();
+    nested_parser.structs_.dict.clear();
+    nested_parser.structs_.vec.clear();
 
     if (!ok)
       ECHECK(Error(nested_parser.error_))
