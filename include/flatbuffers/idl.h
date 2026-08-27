@@ -1264,6 +1264,12 @@ class Parser : public ParserState {
 #if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS  // clang-format off
 public:
   std::unordered_map<std::string, std::string> MigratedTypesDictionary;
+  // What the dynamic fields of the last parse needed. ResolvedDynamicTypes names the
+  // types that were found, so a cache built from this parse can tell later whether it
+  // is still looking at the same schemas. HadUnresolvedDynamicType says a field was
+  // kept as text because its type was missing, which makes the result unfit to cache.
+  std::set<std::string> ResolvedDynamicTypes;
+  bool HadUnresolvedDynamicType = false;
   std::optional<std::string> GetMigratedTypeName(std::string const& typeName);
   static const std::unordered_map<std::string, Type> *GetPrimitiveTypes();
   static const Type* LookupPrimitiveType(std::string const &name);

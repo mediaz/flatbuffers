@@ -3634,6 +3634,10 @@ CheckedError Parser::StartParseFile(const char *source,
   source_ = source;
   ResetState(source_);
   error_.clear();
+#if defined(NOS_CUSTOM_FLATBUFFERS) && NOS_CUSTOM_FLATBUFFERS
+  ResolvedDynamicTypes.clear();
+  HadUnresolvedDynamicType = false;
+#endif
   ECHECK(SkipByteOrderMark());
   NEXT();
   if (Is(kTokenEof)) return Error("input file is empty");
@@ -4747,6 +4751,9 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
   const Type saved_type = val.type;
   if (!ResolveDynamicType(typeName, field, val.type))
   {
+    // Whatever is built from here on keeps this field as text, so nothing may
+    // cache the result and reuse it as though the type had been found.
+    HadUnresolvedDynamicType = true;
     Message("Type not found, trying to omit: " + std::string(typeName));
 
     std::string data;
@@ -4768,6 +4775,8 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
 
     return NoError();
   }
+
+  ResolvedDynamicTypes.insert(typeName);
 
   FlatBufferBuilder fbb;
   const Type ty = val.type;
@@ -4830,6 +4839,12 @@ CheckedError Parser::ParseDynamic(Value& val, FieldDef* field, size_t fieldn, co
     nested_parser.enums_.vec.clear();
     nested_parser.structs_.dict.clear();
     nested_parser.structs_.vec.clear();
+
+    // The nested parse resolved its own dynamic fields, so its outcome is part of
+    // this one: a type missing in there leaves text in here too.
+    HadUnresolvedDynamicType |= nested_parser.HadUnresolvedDynamicType;
+    ResolvedDynamicTypes.insert(nested_parser.ResolvedDynamicTypes.begin(),
+                                nested_parser.ResolvedDynamicTypes.end());
 
     if (!ok)
       ECHECK(Error(nested_parser.error_))
